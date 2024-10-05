@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <title>Bingo - Último Número</title>
+  <link rel="stylesheet" href="static/css/pico.min.css">
+  <link rel="stylesheet" href="static/css/main_ultimo_numero.css">
+</head>
+<body>
+  <dialog id = "resultado" class="container" open style="display:none;" >
+                <article>
+                    <h1 id="titulo">Último número</h1>
+                    <h1 id="number"></h1>
+                  </article>
+
+            </dialog>
+  <script>
+    var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws"; //https ou http, provavelmente http, mas mais vale prevenir que remediar
+    var ws_path = ws_scheme + "://" + window.location.host + "/ws/last";
+    //var ws_path = ws_scheme + "://localhost:8000" + "/ws/last";
+    var ws = new WebSocket(ws_path);
+    ws.onmessage = function(event) {
+        var numberElement = document.getElementById('number');
+        numberElement.textContent = event.data;
+        const modals = document.getElementById("resultado");
+        modals.style.display = "flex";
+    };
+  </script>
+</body>
+</html>

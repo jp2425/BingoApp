@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <title>Bingo - Histórico de Números</title>
+  <link rel="stylesheet" href="static/css/pico.min.css">
+  <style>
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Colunas flexíveis */
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .card {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #007BFF;
+      color: white;
+      font-size: 1.5rem;
+      padding: 20px;
+      border-radius: 8px;
+      height: 100px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Histórico de Números</h1>
+    <div class="grid-container" id="history">
+      <!-- Números em formato de cards serão adicionados aqui -->
+    </div>
+  </main>
+
+  <script>
+    var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
+    var ws_path = ws_scheme + "://" + window.location.host + "/ws/history";
+   // var ws_path = ws_scheme + "://192.168.1.174:8000" + "/ws/history";
+    var ws = new WebSocket(ws_path);
+
+    ws.onmessage = function(event) {
+        var historyElement = document.getElementById('history');
+        var numbers = event.data.split(',');
+        historyElement.innerHTML = ''; // Limpa os cards antes de atualizar
+
+        for (var i = 0; i < numbers.length; i++) {
+            var card = document.createElement('div'); // Cria um card
+            card.className = 'card'; // Adiciona a classe 'card' ao elemento
+            card.textContent = numbers[i]; // Adiciona o número ao card
+            historyElement.appendChild(card); // Adiciona o card à grid
+        }
+    };
+  </script>
+</body>
+</html>
