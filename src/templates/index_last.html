@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/pico.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/main_ultimo_numero.css') }}">
+</head>
+<body>
+  <dialog id = "resultado" class="container" open style="display:none;" >
+                <article>
+                    <h1 id="titulo">{{ container_title }}</h1>
+                    <h1 id="number"></h1>
+                  </article>
+
+            </dialog>
+  <script>
+    var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
+    var ws_path = ws_scheme + "://" + window.location.host + "/ws/last";
+
+    function connect() {
+        var ws = new WebSocket(ws_path);
+
+        ws.onmessage = function(event) {
+            var numberElement = document.getElementById('number');
+            numberElement.textContent = event.data;
+            const modals = document.getElementById("resultado");
+            modals.style.display = "flex";
+        };
+
+        ws.onclose = function(event) {
+            console.log("WebSocket connection closed. Attempting to reconnect in 5 seconds...", event.reason);
+            setTimeout(function() {
+                connect(); // Try to reconnect after 5 seconds
+            }, 5000);
+        };
+
+        ws.onerror = function(event) {
+            console.error("WebSocket encountered an error: ", event);
+            ws.close(); // Trigger the onclose handler to reconnect
+        };
+        }
+        connect();
+
+  </script>
+</body>
+</html>

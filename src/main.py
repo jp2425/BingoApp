@@ -1,87 +1,69 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.responses import HTMLResponse
-import sqlite3
 import threading
 import uvicorn
 
 from starlette.staticfiles import StaticFiles
 
-from CommandManager import CommandManager
-from ConnectionManager import ConnectionManager
+from service.CommandManager import CommandManager
+from service.ConnectionManager import ConnectionManager
+from config import config
+from fastapi.templating import Jinja2Templates
 
+from repo.SQLiteRepo import SQLiteRepo
+from service.WebsocketService import WebsocketService
 
+# ############################
+#   FastAPI initialization   #
+# ############################
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
-
-conn = sqlite3.connect('numeros.db', check_same_thread=False)
-cursor = conn.cursor()
-cursor.execute('CREATE TABLE IF NOT EXISTS numeros (id INTEGER PRIMARY KEY AUTOINCREMENT, numero INTEGER UNIQUE)')
-conn.commit()
-
+# ###########################
+#    Repo and manager init  #
+# ###########################
 
 manager = ConnectionManager()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-
-
+repo = SQLiteRepo()
+service = WebsocketService(repo,manager)
+# ###########################
+#         Routing           #
+# ###########################
 @app.get("/")
 async def root():
     return {"message": "Servidor de Bingo em execução"}
 
-# Página que mostra o último número recebido
-@app.get("/last")
-async def get_last():
-    try:
-        file = open("static/index_ultimo.html", "r")
 
-        return HTMLResponse(content=file.read(), status_code=200)
-    except Exception as e:
-        return HTMLResponse(content="<h1> Erro no servidor </h1>", status_code=500)
+@app.get("/last", response_class=HTMLResponse)
+async def get_last(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="index_last.html", context={"title": config["page"]["last"]["title"],"container_title": config["page"]["last"]["container_title"]}
+    )
 
-# Página que mostra o histórico de números recebidos
-@app.get("/history")
-async def get_history():
-    try:
-        file = open("static/index_historico.html", "r")
-
-        return HTMLResponse(content=file.read(), status_code=200)
-    except Exception as e:
-        return HTMLResponse(content="<h1> Erro no servidor </h1>", status_code=500)
+@app.get("/history", response_class=HTMLResponse)
+async def get_history(request: Request):
+    return templates.TemplateResponse(
+        request=request, name="index_history.html", context={"title": config["page"]["history"]["title"],"container_title": config["page"]["history"]["container_title"]}
+    )
     
-# Endpoint WebSocket para o último número
+# ####################################
+#         WebSocket endpoints        #
+# ####################################
+
 @app.websocket("/ws/last")
 async def websocket_endpoint_last(websocket: WebSocket):
-    await manager.connect_last(websocket)
-    try:
-        cursor.execute("SELECT numero FROM numeros ORDER BY id DESC LIMIT 1")
-        result = cursor.fetchone()
-        if result:
-            await websocket.send_text(str(result[0]))
-        else:
-            await websocket.send_text("Nenhum número recebido ainda.")
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect_last(websocket)
+    await service.handle_connection_last_endpoint(websocket)
 
 @app.websocket("/ws/history")
 async def websocket_endpoint_history(websocket: WebSocket):
-    await manager.connect_history(websocket)
-    try:
-        cursor.execute("SELECT numero FROM numeros")
-        numeros = cursor.fetchall()
-        history = [str(n[0]) for n in numeros]
-        history_str = ','.join(history)
-        await websocket.send_text(history_str)
-        while True:
-            await websocket.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect_history(websocket)
+    await service.handle_connection_history_endpoint(websocket)
 
 # Função principal
 def main():
-    cm_manager = CommandManager(cursor,conn,manager)
+
+    cm_manager = CommandManager(repo,manager)
     input_thread = threading.Thread(target=cm_manager.read_command)
     input_thread.daemon = True
     input_thread.start()

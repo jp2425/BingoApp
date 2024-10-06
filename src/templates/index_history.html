@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <title>{{ title }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/css/pico.min.css') }}">
+  <style>
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Colunas flexíveis */
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .card {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #007BFF;
+      color: white;
+      font-size: 1.5rem;
+      padding: 20px;
+      border-radius: 8px;
+      height: 100px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1 id="container-title">{{ container_title }}</h1>
+    <div class="grid-container" id="history">
+      <!-- Number will be added here -->
+    </div>
+  </main>
+
+  <script>
+    var ws_scheme = window.location.protocol == "https:" ? "wss" : "ws";
+    var ws_path = ws_scheme + "://" + window.location.host + "/ws/history";
+
+    function connect() {
+        var ws = new WebSocket(ws_path);
+
+        ws.onmessage = function(event) {
+            var historyElement = document.getElementById('history');
+            var numbers = event.data.split(',');
+            historyElement.innerHTML = '';
+
+            for (var i = 0; i < numbers.length; i++) {
+                var card = document.createElement('div');
+                card.className = 'card';
+
+                var boldText = document.createElement('strong');
+                boldText.textContent = numbers[i];
+
+                card.appendChild(boldText);
+                historyElement.appendChild(card);
+            }
+        };
+
+        ws.onclose = function(event) {
+            console.log("WebSocket connection closed. Attempting to reconnect in 5 seconds...", event.reason);
+            setTimeout(function() {
+                connect(); // Try to reconnect after 5 seconds
+            }, 5000);
+        };
+
+        ws.onerror = function(event) {
+            console.error("WebSocket encountered an error: ", event);
+            ws.close(); // Trigger the onclose handler to reconnect
+        };
+    }
+
+    connect();
+
+  </script>
+</body>
+</html>
