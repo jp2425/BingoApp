@@ -1,4 +1,5 @@
 from fastapi import  WebSocket
+from starlette.websockets import WebSocketState
 
 
 class ConnectionManager:
@@ -28,9 +29,27 @@ class ConnectionManager:
             self.active_connections_history.remove(websocket)
 
     async def send_last(self, message: str):
-        for connection in self.active_connections_last:
-            await connection.send_text(message)
+        for connection in self.active_connections_last[:]: # we should iterate through a copy of the list. Otherwise, if we change the list during iteration, it will lead to erroneous behavior
+            try:
+                await connection.send_text(message)
+            except:
+                self.active_connections_last.remove(connection)
 
     async def send_history(self, message: str):
-        for connection in self.active_connections_history:
-            await connection.send_text(message)
+        print(len(self.active_connections_history), " conexões")
+        for connection in self.active_connections_history[:]:  # we should iterate through a copy of the list. Otherwise, if we change the list during iteration, it will lead to erroneous behavior
+            print(len(self.active_connections_history), " conexões dentro")
+
+            print("Tentando enviar historico")
+            if connection.client_state == WebSocketState.CONNECTED:
+                try:
+                    await connection.send_text(message)
+                    print("historico enviado")
+                except:
+                    self.active_connections_history.remove(connection)
+                    print("removendo")
+            else:
+                self.active_connections_history.remove(connection)
+                print("removendo")
+
+
