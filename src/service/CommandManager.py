@@ -3,6 +3,8 @@ from ConfigSIngleton import ConfigSingleton
 from repo.RepoAbsClass import RepoAbsClass
 from service.ConnectionManager import ConnectionManager
 
+from service.NumberService import NumberService
+
 
 class CommandManager:
     """
@@ -10,9 +12,9 @@ class CommandManager:
     This class runs in a thread and is responsible for inserting/removing numbers from the database.
     """
 
-    def __init__(self, db_repo:RepoAbsClass, manager: ConnectionManager):
+    def __init__(self, db_repo:RepoAbsClass, service: NumberService):
         self._repo = db_repo
-        self._manager = manager
+        self._service = service
 
     def print_available_commands(self):
         print(ConfigSingleton().get_message_available_commands())
@@ -24,40 +26,28 @@ class CommandManager:
         """
         try:
 
+            if command.upper() == "CLEAR ALL":
+                self._repo.clear_all()
+            else:
+                # parsing
+                parameters = command.split("-")
+                if len(parameters) > 2:
+                    raise ValueError("The command has too many '-'!\nEnter again please.")
 
-            # parsing
-            parameters = command.split("-")
-            if len(parameters) > 2:
-                raise ValueError("The command has too many '-'!\nEnter again please.")
+                action = parameters[0]
+                number = parameters[1]
 
-            action = parameters[0]
-            number = parameters[1]
+                try:
+                    if str(action).upper() == "I":
+                        self._repo.insert_number_action(int(number))
+                    elif str(action).upper() == "D":
+                        self._repo.delete_number_action(int(number))
+                    else:
+                        raise ValueError("The command is wrong! It must be in the format i-{number} or d-{number} '-'!\nEnter again please.")
+                except Exception as e:
+                    raise ValueError(f"The command is not valid! {e}")
 
-            try:
-                if str(action).upper() == "I":
-                    self._repo.insert_number_action(int(number))
-                elif str(action).upper() == "D":
-                    self._repo.delete_number_action(int(number))
-                else:
-                    raise ValueError("The command is wrong! It must be in the format i-{number} or d-{number} '-'!\nEnter again please.")
-            except Exception as e:
-                raise ValueError(f"The command is not valid! {e}")
-
-            # sends the last number to the client (if it exists). IF there is no "last number", it will send the default message specified in the configuration ("default_last_message_empty_values" key)
-            last_number = self._repo.get_last()
-            asyncio.run(self._manager.send_last(str(last_number)))
-
-
-            # Sends the complete history to the history client
-            numbers = self._repo.get_all_numbers()
-            history_str = ""
-
-            # if we got no numbers stored in the database we should not send anything with a comma to the client.
-            if len(numbers) > 0:
-                history = [str(n[0]) for n in numbers]
-                history_str = ','.join(history)
-
-            asyncio.run(self._manager.send_history(history_str))
+            asyncio.run(self._service.update_clients())
 
         except Exception as e:
             print(f"Error processing the command.\nMessage: {e}")

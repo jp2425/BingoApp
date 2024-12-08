@@ -7,6 +7,12 @@ article {
     padding: 5%;
   }
 
+  /*
+#number {
+--pico-font-size: 9rem;
+
+}*/
   #titulo{
+  /*-pico-font-size: 3rem;*/
     padding-bottom: 5%;
   }

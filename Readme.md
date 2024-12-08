@@ -9,11 +9,13 @@ This functionality is usefull in case of projecting the numbers drawn in one dev
 
 ## The app  
   
-This app provides two main functionalities:  
+This app provides multiple endpoints:  
 * An endpoint to present the last number drawn (`http://IP:PORT/last`).  
 * An endpoint to show the history of numbers drawn (`http://IP:PORT/history`)
+* Endpoint to quickly insert numbers drawn (`http://IP:PORT/number`)
+* Endpoint to restore database backups (`http://IP:PORT/number_manual`)
 
-The server allows the operator to insert or delete numbers. The information is stored in a local database (sqlite), to avoid data loss in case of application failure.  
+The server allows the operator to insert or delete numbers via terminal, but it is not the recommended method. The information is stored in a local database (sqlite), to avoid data loss in case of application failure.  
 The webpages served by the application also implement a reconnect mechanism to overcome possible network problems, which may lead to the connection loss between the clients/server.
 
 ## Configuration  
@@ -21,17 +23,25 @@ The webpages served by the application also implement a reconnect mechanism to o
 This app has a simple configuration system. All configuration is stored in the [config.py](src/config.py) file.  
 A sample configuration can be analyzed bellow:  
 ```python
-
 config = {
-    "page":{ #all configs used in web page templates. We can have multiple pages here
-        "last":{ #the /last page
-           "title":"Último número", #the title that is shown in the webpage.
-            "container_title":"Last number drawn", #the message that is shown in the webpage header
-            "default_last_message_empty_values": "No number drawn" #the default message that is shown when no number was drawn.
+    "page":{ #all configs used in web page templates
+        "last":{ #the /last endpoint
+           "title":"Last Number",
+            "container_title":"Last number drawn",
+            "default_last_message_empty_values": "No number drawn"
         },
-        "history":{ #the /history page
-            "title":"History of numbers drawn", #the title that is shown in the webpage.
+        "history":{ #the /history endpoint
+            "title":"Last number",
             "container_title":"History of numbers drawn"
+        },
+        "number":{ #the /number endpoint
+            "title":"Bingo",
+            "button_reset":"Reset",
+            "button_change_ui":"Manual UI",
+            "allowed_IP":["127.0.0.1", "::1"] #only these IPs can access the endpoint. Empty for any IP
+        },
+        "backup_restore":{
+            "allowed_IP":["127.0.0.1", "::1"] #only these IPs can access the endpoint. Empty for any IP
         }
     },
     "message_available_commands": """
@@ -45,8 +55,8 @@ config = {
         """
 }
 ```  
-> **Please note that the default configuration has the strings in portuguese!**  
-You need to change those to your language.
+
+The `/number` and `/number_manual` endpoind can only accept connections from specific IPs. To do this, simply add the allowed IP to the `allowed_IP` array in the settings. **Note:** empty array allows any IP to connect
 ## Testing the app
 
 Just run:  
@@ -57,6 +67,7 @@ python main.py
   
 ## Gallery
 
-![img1](img/img1.png)  
-![img2](img/img2.png)  
-![img3](img/img3.png)
+![img1](img/backup_restore.png)  
+![img2](img/history.png)  
+![img3](img/last.png)
+![img4](img/number.png)

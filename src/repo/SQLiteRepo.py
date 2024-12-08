@@ -17,6 +17,7 @@ class SQLiteRepo(RepoAbsClass):
         self._cursor.execute(
             'CREATE TABLE IF NOT EXISTS numbers (id INTEGER PRIMARY KEY AUTOINCREMENT, number INTEGER UNIQUE)')
         self._conn.commit()
+        self.BACKUP_COUNTER = 0
 
     def insert_number_action(self, number: int):
         """
@@ -53,3 +54,25 @@ class SQLiteRepo(RepoAbsClass):
             return self._cursor.fetchone()[0]
         except:
             return str(ConfigSingleton().get_page_config("last")["default_last_message_empty_values"]) #no value in database
+
+    def clear_all(self):
+        """
+         Function to clear all history from the database, save it to a text file (one number per line),
+         and then clear the table.
+        """
+
+
+        rows = self.get_all_numbers()
+        if rows:
+            with open("database_backup_"+str(self.BACKUP_COUNTER)+".txt", "w") as file:
+                for row in rows:
+                    file.write(f"{row[0]}\n")
+
+            file.close()
+            self.BACKUP_COUNTER += 1
+            self._cursor.execute("DELETE FROM numbers")
+            self._conn.commit()
+
+            return str(ConfigSingleton().get_page_config("last")["default_last_message_empty_values"])
+
+

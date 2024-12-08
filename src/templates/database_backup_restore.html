@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bingo Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/pico.min.css') }}">
+    <script>
+        async function addNumber() {
+            const numberInput = document.getElementById("numberInput").value.trim();
+            const numbers = numberInput.split("\n").map(num => num.trim()).filter(num => num !== "");
+
+            if (numbers.length > 0) {
+                const params = "numbers=" + numbers.join(",");
+
+                const response = await fetch(`/api/number`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: params
+                });
+
+                if (response.ok) {
+                   // alert("Success!");
+                    document.getElementById("numberInput").value = "";
+                } else {
+                    const errorText = await response.text();
+                    alert("Error: " + errorText);
+                }
+            } else {
+                alert("Please, insert at least a number");
+            }
+        }
+
+        async function deleteNumber() {
+            const numberInput = document.getElementById("numberInput").value.trim();
+            const numbers = numberInput.split("\n").map(num => num.trim()).filter(num => num !== "");
+
+            if (numbers.length > 0) {
+                for (let number of numbers) {
+                    const response = await fetch(`/api/number/${number}`, {
+                        method: 'DELETE'
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        alert("Error deleting the number " + number + ": " + errorText);
+                        return;
+                    }
+                }
+                //alert("Success");
+                document.getElementById("numberInput").value = "";
+            } else {
+                alert("Please, insert at least a number");
+            }
+        }
+
+        async function resetDatabase() {
+            const response = await fetch(`/api/number_all`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                //alert("Success");
+            } else {
+                const errorText = await response.text();
+                alert("Error: " + errorText);
+            }
+        }
+    </script>
+</head>
+<body>
+    <main>
+        <h1>Bingo manager</h1>
+        <div style="text-align: center;">
+            <textarea id="numberInput" rows="10" cols="30" placeholder="Insert the numbers, one each line"></textarea><br><br>
+            <button onclick="addNumber()">Add</button>
+            <button onclick="deleteNumber()">Delete</button>
+            <button onclick="resetDatabase()">Reset</button>
+        </div>
+    </main>
+</body>
+</html>
